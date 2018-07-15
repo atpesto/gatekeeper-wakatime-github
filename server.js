@@ -10,37 +10,55 @@ var TRUNCATE_THRESHOLD = 10,
     REVEALED_CHARS = 3,
     REPLACEMENT = '***';
 
-// Load config defaults from JSON file.
-// Environment variables override defaults.
-function loadConfig() {
-  var config = JSON.parse(fs.readFileSync(__dirname+ '/config.json', 'utf-8'));
-  log('Configuration');
-  for (var i in config) {
-    config[i] = process.env[i.toUpperCase()] || config[i];
-    if (i === 'oauth_client_id' || i === 'oauth_client_secret') {
-      log(i + ':', config[i], true);
-    } else {
-      log(i + ':', config[i]);
-    }
-  }
-  return config;
-}
+var { config, wakatimeConfig, githubConfig } = require('./config');
 
-var config = loadConfig();
-
-function authenticate(code, cb) {
+function authenticateWakatime(code, cb) {
   var data = qs.stringify({
-    client_id: config.oauth_client_id,
-    client_secret: config.oauth_client_secret,
+    client_id: wakatimeConfig.oauth_client_id,
+    client_secret: wakatimeConfig.oauth_client_secret,
     grant_type: 'authorization_code',
     redirect_uri: 'http://localhost:3000/',
     code: code,
   });
 
   var reqOptions = {
-    host: config.oauth_host,
+    host: wakatimeConfig.oauth_host,
     port: config.oauth_port,
-    path: config.oauth_path,
+    path: wakatimeConfig.oauth_path,
+    method: config.oauth_method,
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'content-length': data.length
+    }
+  };
+
+  var body = "";
+  var req = https.request(reqOptions, function(res) {
+    res.setEncoding('utf8');
+    res.on('data', function (chunk) { body += chunk; });
+    res.on('end', function() {
+      console.log('body: ', body);
+      cb(null, qs.parse(body));
+    });
+  });
+
+  req.write(data);
+  req.end();
+  req.on('error', function(e) { cb(e.message); });
+}
+
+function authenticateGithub(code, cb) {
+  var data = qs.stringify({
+    client_id: githubConfig.oauth_client_id,
+    client_secret: githubConfig.oauth_client_secret,
+    redirect_uri: 'http://localhost:3000/',
+    code: code,
+  });
+
+  var reqOptions = {
+    host: githubConfig.oauth_host,
+    port: config.oauth_port,
+    path: githubConfig.oauth_path,
     method: config.oauth_method,
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
@@ -96,7 +114,22 @@ app.all('*', function (req, res, next) {
 
 app.get('/wakatime/authenticate/:code', function(req, res) {
   log('authenticating code:', req.params.code, true);
-  authenticate(req.params.code, function(err, token) {
+  authenticateWakatime(req.params.code, function(err, token) {
+    var result
+    if ( err ) {
+      result = {"error": err};
+      log(result.error);
+    } else {
+      result = {"token": token};
+      log("token", result.token, true);
+    }
+    res.json(result);
+  });
+});
+
+app.get('/github/authenticate/:code', function(req, res) {
+  log('authenticating code:', req.params.code, true);
+  authenticateGithub(req.params.code, function(err, token) {
     var result
     if ( err ) {
       result = {"error": err};
