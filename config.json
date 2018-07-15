@@ -1,8 +1,8 @@
 {
-  "oauth_client_id": "GITHUB_APPLICATION_CLIENT_ID",
-  "oauth_client_secret": "GITHUB_APPLICATION_CLIENT_SECRET",
-  "oauth_host": "github.com",
+  "oauth_client_id": "2KRJtoTyl9YJAJRffUs6STE4",
+  "oauth_client_secret": "sec_a4fh9QgSC4EdiMjls1uSxJ5g4KF1edtwwJiglWcIFLuV3k5Na255VubYInUya6NF1cK2neG6Y9UJrcIF",
+  "oauth_host": "wakatime.com",
   "oauth_port": 443,
-  "oauth_path": "/login/oauth/access_token",
+  "oauth_path": "/oauth/token",
   "oauth_method": "POST"
 }

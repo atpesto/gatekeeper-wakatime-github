@@ -32,7 +32,9 @@ function authenticate(code, cb) {
   var data = qs.stringify({
     client_id: config.oauth_client_id,
     client_secret: config.oauth_client_secret,
-    code: code
+    grant_type: 'authorization_code',
+    redirect_uri: 'http://localhost:3000/',
+    code: code,
   });
 
   var reqOptions = {
@@ -40,7 +42,10 @@ function authenticate(code, cb) {
     port: config.oauth_port,
     path: config.oauth_path,
     method: config.oauth_method,
-    headers: { 'content-length': data.length }
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'content-length': data.length
+    }
   };
 
   var body = "";
@@ -48,7 +53,8 @@ function authenticate(code, cb) {
     res.setEncoding('utf8');
     res.on('data', function (chunk) { body += chunk; });
     res.on('end', function() {
-      cb(null, qs.parse(body).access_token);
+      console.log('body: ', body);
+      cb(null, qs.parse(body));
     });
   });
 
@@ -82,18 +88,18 @@ function log(label, value, sanitized) {
 // Convenience for allowing CORS on routes - GET only
 app.all('*', function (req, res, next) {
   res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type');
   next();
 });
 
 
-app.get('/authenticate/:code', function(req, res) {
+app.get('/wakatime/authenticate/:code', function(req, res) {
   log('authenticating code:', req.params.code, true);
   authenticate(req.params.code, function(err, token) {
     var result
-    if ( err || !token ) {
-      result = {"error": err || "bad_code"};
+    if ( err ) {
+      result = {"error": err};
       log(result.error);
     } else {
       result = {"token": token};
